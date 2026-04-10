@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enable All Packages on Fedora 38-44 | Thanks_God.sh v3.1</title>
+    <meta name="description" content="One command to enable RPM Fusion, Flatpak, Snap, multimedia codecs, Chrome, VS Code, and fix all Fedora 44 issues.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #030304;
+            --bg-secondary: #0a0a0c;
+            --bg-card: rgba(255,255,255,0.02);
+            --bg-card-hover: rgba(255,255,255,0.05);
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255,255,255,0.65);
+            --text-muted: rgba(255,255,255,0.35);
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-cyan: #06b6d4;
+            --accent-orange: #f97316;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --border-color: rgba(255,255,255,0.08);
+            --glow-blue: rgba(59,130,246,0.25);
+            --glow-purple: rgba(139,92,246,0.25);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; scrollbar-width: thin; scrollbar-color: var(--accent-blue) var(--bg-primary); }
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-primary); }
+        ::-webkit-scrollbar-thumb { background: var(--accent-blue); border-radius: 3px; }
+
+        #bgCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+        .cursor-glow { position: fixed; width: 350px; height: 350px; border-radius: 50%; background: radial-gradient(circle, rgba(59,130,246,0.08) 0%, transparent 70%); pointer-events: none; z-index: 0; transform: translate(-50%, -50%); transition: transform 0.15s ease-out; }
+
+        .nav { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; padding: 1rem 2rem; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        .nav.scrolled { background: rgba(3,3,4,0.85); backdrop-filter: blur(20px) saturate(180%); border-bottom: 1px solid var(--border-color); }
+        .nav-inner { max-width: 1400px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+        .nav-logo { display: flex; align-items: center; gap: 0.75rem; text-decoration: none; color: var(--text-primary); }
+        .nav-logo svg { width: 34px; height: 34px; }
+        .nav-logo span { font-weight: 700; font-size: 1.05rem; letter-spacing: -0.02em; }
+        .nav-links { display: flex; gap: 2rem; align-items: center; }
+        .nav-links a { color: var(--text-secondary); text-decoration: none; font-size: 0.875rem; font-weight: 500; transition: color 0.3s; position: relative; }
+        .nav-links a:hover { color: var(--text-primary); }
+        .nav-links a::after { content: ''; position: absolute; bottom: -4px; left: 0; width: 0; height: 2px; background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple)); transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1); border-radius: 1px; }
+        .nav-links a:hover::after { width: 100%; }
+        .nav-cta { padding: 0.5rem 1.2rem !important; background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); border-radius: 8px; color: white !important; font-weight: 600 !important; }
+        .nav-cta::after { display: none !important; }
+        .mobile-menu-btn { display: none; background: none; border: none; color: var(--text-primary); cursor: pointer; padding: 0.5rem; }
+
+        .hero { position: relative; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 8rem 2rem 4rem; z-index: 1; }
+        .hero-content { max-width: 900px; text-align: center; }
+        .hero-badge { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.9rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 100px; font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 1.5rem; opacity: 0; animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards; }
+        .hero-badge .dot { width: 7px; height: 7px; background: var(--accent-green); border-radius: 50%; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.3); } }
+        .hero-title { font-size: clamp(2.5rem, 7vw, 4.5rem); font-weight: 900; line-height: 1.05; letter-spacing: -0.04em; margin-bottom: 1.25rem; opacity: 0; animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards; }
+        .hero-title .gradient-text { background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple), var(--accent-cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .hero-subtitle { font-size: clamp(1rem, 2.2vw, 1.2rem); color: var(--text-secondary); max-width: 680px; margin: 0 auto 2.5rem; font-weight: 400; line-height: 1.7; opacity: 0; animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.6s forwards; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(25px); } to { opacity: 1; transform: translateY(0); } }
+
+        .one-liner-box {
+            background: rgba(10,10,12,0.9);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 1rem 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            max-width: 720px;
+            margin: 0 auto 2.5rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4), 0 0 20px var(--glow-blue);
+            opacity: 0;
+            animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.8s forwards;
+            flex-wrap: wrap;
+        }
+        .one-liner-text { font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: var(--text-primary); word-break: break-all; text-align: left; }
+        .copy-main-btn {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            border: none;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+        .copy-main-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 15px var(--glow-blue); }
+        .copy-main-btn.copied { background: var(--accent-green); }
+
+        .hero-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; opacity: 0; animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.9s forwards; }
+        .btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.8rem 1.5rem; border-radius: 10px; font-size: 0.9rem; font-weight: 600; text-decoration: none; cursor: pointer; border: none; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        .btn-primary { background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); }
+        .btn-primary:hover { background: var(--bg-card-hover); border-color: rgba(255,255,255,0.2); transform: translateY(-2px); }
+        .btn svg { width: 18px; height: 18px; }
+
+        .terminal-preview { margin-top: 3rem; opacity: 0; animation: fadeUp 1s cubic-bezier(0.16, 1, 0.3, 1) 1.1s forwards; max-width: 700px; margin-left: auto; margin-right: auto; }
+        .terminal { background: rgba(10,10,12,0.95); border: 1px solid var(--border-color); border-radius: 14px; overflow: hidden; text-align: left; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+        .terminal-header { display: flex; align-items: center; gap: 0.5rem; padding: 0.8rem 1.25rem; background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--border-color); }
+        .terminal-dot { width: 11px; height: 11px; border-radius: 50%; }
+        .terminal-dot.red { background: #ff5f57; } .terminal-dot.yellow { background: #febc2e; } .terminal-dot.green { background: #28c840; }
+        .terminal-title { flex: 1; text-align: center; font-size: 0.75rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+        .terminal-body { padding: 1.25rem; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; line-height: 1.6; }
+        .t-line { opacity: 0; animation: typeLine 0.4s ease forwards; }
+        .t-line:nth-child(1) { animation-delay: 1.3s; } .t-line:nth-child(2) { animation-delay: 1.7s; } .t-line:nth-child(3) { animation-delay: 2.1s; }
+        .t-line:nth-child(4) { animation-delay: 2.5s; } .t-line:nth-child(5) { animation-delay: 2.9s; } .t-line:nth-child(6) { animation-delay: 3.3s; }
+        @keyframes typeLine { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
+        .t-prompt { color: var(--accent-green); } .t-cmd { color: var(--text-primary); } .t-out { color: var(--text-muted); }
+        .t-success { color: var(--accent-green); } .t-ascii { color: var(--accent-cyan); font-size: 0.55rem; line-height: 1.1; }
+
+        .stats-section { position: relative; z-index: 1; padding: 3rem 2rem; }
+        .stats-grid { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.25rem; }
+        .stat-card { text-align: center; padding: 1.5rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; transition: all 0.3s; }
+        .stat-card:hover { border-color: var(--accent-blue); background: var(--bg-card-hover); transform: translateY(-4px); }
+        .stat-num { font-size: 2.2rem; font-weight: 800; letter-spacing: -0.03em; background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .stat-label { font-size: 0.82rem; color: var(--text-secondary); margin-top: 0.2rem; }
+
+        .features-section { position: relative; z-index: 1; padding: 5rem 2rem; }
+        .section-header { text-align: center; max-width: 750px; margin: 0 auto 3.5rem; }
+        .section-label { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent-blue); margin-bottom: 0.75rem; }
+        .section-title { font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 800; letter-spacing: -0.03em; line-height: 1.15; margin-bottom: 0.75rem; }
+        .section-desc { color: var(--text-secondary); font-size: 1rem; }
+
+        .fixes-grid { max-width: 1100px; margin: 0 auto 4rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; }
+        .fix-card { padding: 1.5rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; transition: all 0.3s; display: flex; gap: 1rem; align-items: flex-start; }
+        .fix-card:hover { border-color: var(--accent-purple); background: var(--bg-card-hover); transform: translateY(-3px); }
+        .fix-icon { width: 36px; height: 36px; min-width: 36px; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: rgba(139,92,246,0.15); color: var(--accent-purple); font-size: 1.1rem; }
+        .fix-content h4 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.25rem; }
+        .fix-content p { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; }
+
+        .steps-grid { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem; }
+        .step-card { padding: 1.5rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; transition: all 0.3s; position: relative; overflow: hidden; }
+        .step-card:hover { border-color: var(--accent-blue); background: var(--bg-card-hover); transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .step-num { position: absolute; top: 1rem; right: 1rem; font-size: 3rem; font-weight: 900; color: rgba(255,255,255,0.04); line-height: 1; }
+        .step-icon { width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; border-radius: 10px; margin-bottom: 1rem; }
+        .step-icon.blue { background: rgba(59,130,246,0.15); color: var(--accent-blue); }
+        .step-icon.purple { background: rgba(139,92,246,0.15); color: var(--accent-purple); }
+        .step-icon.cyan { background: rgba(6,182,212,0.15); color: var(--accent-cyan); }
+        .step-icon.green { background: rgba(16,185,129,0.15); color: var(--accent-green); }
+        .step-icon.orange { background: rgba(249,115,22,0.15); color: var(--accent-orange); }
+        .step-title { font-size: 1rem; font-weight: 700; margin-bottom: 0.35rem; }
+        .step-desc { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.55; }
+
+        .script-section { position: relative; z-index: 1; padding: 5rem 2rem; }
+        .script-container { max-width: 950px; margin: 0 auto; }
+        .script-block { background: rgba(8,8,10,0.95); border: 1px solid var(--border-color); border-radius: 18px; overflow: hidden; position: relative; box-shadow: 0 20px 60px rgba(0,0,0,0.4); }
+        .script-header { display: flex; justify-content: space-between; align-items: center; padding: 0.9rem 1.25rem; background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--border-color); flex-wrap: wrap; gap: 0.75rem; }
+        .script-filename { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--text-secondary); }
+        .script-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+        .script-btn { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.4rem 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 7px; color: var(--text-secondary); font-size: 0.78rem; font-weight: 500; cursor: pointer; transition: all 0.2s; font-family: 'Inter', sans-serif; text-decoration: none; }
+        .script-btn:hover { background: rgba(255,255,255,0.1); color: var(--text-primary); }
+        .script-btn.copied { background: rgba(16,185,129,0.15); border-color: rgba(16,185,129,0.3); color: var(--accent-green); }
+        .script-btn svg { width: 14px; height: 14px; }
+        .script-code { padding: 1.25rem; max-height: 580px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; line-height: 1.65; }
+        .script-code::-webkit-scrollbar { width: 4px; }
+        .script-code::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+        .code-line { display: flex; gap: 0.8rem; }
+        .line-num { color: var(--text-muted); user-select: none; min-width: 1.8rem; text-align: right; font-size: 0.7rem; line-height: 1.65; }
+        .code-content { white-space: pre; }
+        .c-comment { color: #6b7280; } .c-key { color: #c084fc; } .c-str { color: #34d399; } .c-var { color: #38bdf8; } .c-func { color: #60a5fa; } .c-flag { color: #f97316; } .c-num { color: #f472b6; }
+
+        .usage-section { position: relative; z-index: 1; padding: 5rem 2rem; }
+        .usage-steps { max-width: 850px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.25rem; }
+        .use-card { display: flex; gap: 1.25rem; padding: 1.5rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; transition: all 0.3s; align-items: flex-start; }
+        .use-card:hover { border-color: var(--accent-blue); background: var(--bg-card-hover); transform: translateX(5px); }
+        .use-num { width: 44px; height: 44px; min-width: 44px; display: flex; align-items: center; justify-content: center; border-radius: 10px; background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); font-weight: 800; font-size: 1.05rem; }
+        .use-content h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.25rem; }
+        .use-content p { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.55; }
+        .use-cmd { margin-top: 0.6rem; padding: 0.65rem 0.85rem; background: rgba(0,0,0,0.4); border-radius: 8px; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--accent-cyan); display: flex; justify-content: space-between; align-items: center; gap: 0.8rem; overflow-x: auto; }
+        .use-cmd code { flex: 1; white-space: nowrap; }
+        .copy-sm { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 0.2rem; transition: color 0.2s; flex-shrink: 0; }
+        .copy-sm:hover { color: var(--accent-green); } .copy-sm svg { width: 16px; height: 16px; }
+
+        .apps-section { position: relative; z-index: 1; padding: 5rem 2rem; }
+        .apps-grid { max-width: 1000px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; }
+        .app-card { display: flex; align-items: center; gap: 0.9rem; padding: 1.1rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; transition: all 0.3s; }
+        .app-card:hover { border-color: var(--accent-blue); transform: translateY(-4px); }
+        .app-icon { width: 42px; height: 42px; min-width: 42px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 1.15rem; }
+        .app-icon.chrome { background: linear-gradient(135deg, #4285f4, #34a853); }
+        .app-icon.vscode { background: linear-gradient(135deg, #0078d4, #1b98e0); }
+        .app-icon.vlc { background: linear-gradient(135deg, #ff8800, #ffb347); }
+        .app-icon.heroic { background: linear-gradient(135deg, #d4a024, #f0c040); }
+        .app-icon.cell { background: linear-gradient(135deg, #6c5ce7, #a29bfe); }
+        .app-info h4 { font-size: 0.92rem; font-weight: 600; margin-bottom: 0.1rem; }
+        .app-info span { font-size: 0.72rem; color: var(--text-muted); }
+
+        .compat-section { position: relative; z-index: 1; padding: 5rem 2rem; }
+        .compat-grid { max-width: 1000px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem; }
+        .fedora-card { display: flex; flex-direction: column; align-items: center; gap: 0.6rem; padding: 1.5rem 1rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; transition: all 0.3s; text-align: center; }
+        .fedora-card:hover { border-color: var(--accent-blue); background: var(--bg-card-hover); transform: translateY(-4px); box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+        .fedora-logo { width: 44px; height: 44px; }
+        .fedora-ver { font-weight: 700; font-size: 1.05rem; }
+        .fedora-status { font-size: 0.7rem; color: var(--accent-green); display: flex; align-items: center; gap: 0.25rem; }
+        .dot-green { width: 5px; height: 5px; background: var(--accent-green); border-radius: 50%; }
+
+        .footer { position: relative; z-index: 1; padding: 4rem 2rem 2rem; border-top: 1px solid var(--border-color); }
+        .footer-inner { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 2.5rem; }
+        .footer-brand { max-width: 320px; }
+        .footer-brand h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .footer-brand p { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.55; }
+        .foot-links h4 { font-size: 0.82rem; font-weight: 600; margin-bottom: 0.8rem; color: var(--text-primary); }
+        .foot-links a { display: block; font-size: 0.82rem; color: var(--text-secondary); text-decoration: none; margin-bottom: 0.5rem; transition: color 0.2s; }
+        .foot-links a:hover { color: var(--accent-blue); }
+        .foot-bottom { max-width: 1200px; margin: 2.5rem auto 0; padding-top: 1.5rem; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+        .foot-bottom p { font-size: 0.78rem; color: var(--text-muted); }
+        .foot-social { display: flex; gap: 0.75rem; }
+        .foot-social a { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-secondary); transition: all 0.3s; }
+        .foot-social a:hover { border-color: var(--accent-blue); color: var(--accent-blue); transform: translateY(-2px); }
+        .foot-social a svg { width: 16px; height: 16px; }
+
+        .reveal { opacity: 0; transform: translateY(35px); transition: all 0.7s cubic-bezier(0.16, 1, 0.3, 1); }
+        .reveal.visible { opacity: 1; transform: translateY(0); }
+        .tooltip { position: fixed; padding: 0.4rem 0.7rem; background: var(--accent-green); color: #000; font-size: 0.72rem; font-weight: 600; border-radius: 5px; pointer-events: none; z-index: 10000; opacity: 0; transform: translateY(5px); transition: all 0.2s; }
+        .tooltip.show { opacity: 1; transform: translateY(0); }
+        .glow-orb { position: absolute; border-radius: 50%; filter: blur(90px); pointer-events: none; z-index: 0; }
+        .glow-1 { width: 500px; height: 500px; background: rgba(59,130,246,0.06); top: -150px; right: -150px; }
+        .glow-2 { width: 400px; height: 400px; background: rgba(139,92,246,0.05); bottom: -100px; left: -100px; }
+
+        .mobile-menu { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(3,3,4,0.98); z-index: 999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.8rem; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+        .mobile-menu.active { opacity: 1; pointer-events: all; }
+        .mobile-menu a { color: var(--text-primary); text-decoration: none; font-size: 1.4rem; font-weight: 600; }
+        .mob-close { position: absolute; top: 1.2rem; right: 1.2rem; background: none; border: none; color: var(--text-primary); cursor: pointer; font-size: 1.5rem; }
+
+        @media (max-width: 1024px) { .fixes-grid, .steps-grid { grid-template-columns: 1fr 1fr; } }
+        @media (max-width: 768px) {
+            .nav-links { display: none; } .mobile-menu-btn { display: block; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .fixes-grid, .steps-grid, .apps-grid { grid-template-columns: 1fr; }
+            .footer-inner, .foot-bottom { flex-direction: column; text-align: center; }
+            .one-liner-box { flex-direction: column; text-align: center; gap: 0.75rem; }
+        }
+        @media (max-width: 480px) {
+            .stats-grid { grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+            .stat-card { padding: 1rem; } .stat-num { font-size: 1.8rem; }
+            .compat-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="bgCanvas"></canvas>
+    <div class="cursor-glow" id="cursorGlow"></div>
+
+    <nav class="nav" id="navbar">
+        <div class="nav-inner">
+            <a href="#" class="nav-logo">
+                <svg viewBox="0 0 36 36" fill="none"><rect width="36" height="36" rx="10" fill="url(#lg)"/><path d="M10 18L16 24L26 12" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><defs><linearGradient id="lg" x1="0" y1="0" x2="36" y2="36"><stop stop-color="#3b82f6"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient></defs></svg>
+                <span>Fedora Enable-All</span>
+            </a>
+            <div class="nav-links">
+                <a href="#fixes">Key Fixes</a>
+                <a href="#features">Features</a>
+                <a href="#script">Script</a>
+                <a href="#usage">Usage</a>
+                <a href="#apps">Apps</a>
+                <a href="https://github.com/ShoumikBalaSomu/Enable-All-Packages-on-Fedora-38-44" target="_blank" class="nav-cta">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+                    GitHub
+                </a>
+            </div>
+            <button class="mobile-menu-btn" onclick="toggleMob()" aria-label="Menu"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+        </div>
+    </nav>
+
+    <div class="mobile-menu" id="mobMenu">
+        <button class="mob-close" onclick="toggleMob()">✕</button>
+        <a href="#fixes" onclick="toggleMob()">Key Fixes</a>
+        <a href="#features" onclick="toggleMob()">Features</a>
+        <a href="#script" onclick="toggleMob()">Script</a>
+        <a href="#usage" onclick="toggleMob()">Usage</a>
+        <a href="https://github.com/ShoumikBalaSomu/Enable-All-Packages-on-Fedora-38-44" target="_blank">GitHub</a>
+    </div>
+
+    <section class="hero">
+        <div class="glow-orb glow-1"></div>
+        <div class="glow-orb glow-2"></div>
+        <div class="hero-content">
+            <div class="hero-badge"><span class="dot"></span> v3.1 — Fedora 44 Live Tested — Open Source</div>
+            <h1 class="hero-title">Unlock Every<br><span class="gradient-text">Fedora Package</span></h1>
+            <p class="hero-subtitle">One command to enable RPM Fusion, Flatpak, Snap, multimedia codecs, Chrome, VS Code, and 10+ critical fixes. Fully tested on Fedora 38–44 with intelligent fallbacks.</p>
+            
+            <div class="one-liner-box">
+                <code class="one-liner-text">bash &lt;(curl -sL https://raw.githubusercontent.com/ShoumikBalaSomu/Enable-All-Packages-on-Fedora-38-44/main/Thanks_God.sh)</code>
+                <button class="copy-main-btn" id="copyMain" onclick="copyMain()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy Command</button>
+            </div>
+
+            <div class="hero-actions">
+                <a href="#usage" class="btn btn-primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg> How to Run</a>
+            </div>
+
+            <div class="terminal-preview">
+                <div class="terminal">
+                    <div class="terminal-header"><span class="terminal-dot red"></span><span class="terminal-dot yellow"></span><span class="terminal-dot green"></span><span class="terminal-title">bash — Thanks_God.sh v3.1</span></div>
+                    <div class="terminal-body">
+                        <div class="t-line"><span class="t-prompt">$</span> <span class="t-cmd">bash &lt;(curl -sL .../Thanks_God.sh)</span></div>
+                        <div class="t-line"><span class="t-ascii"> ███████╗███████╗██████╗  ██████╗ ██████╗  █████╗</span></div>
+                        <div class="t-line"><span class="t-out">[INFO] Detected: Fedora 44</span></div>
+                        <div class="t-line"><span class="t-out">[INFO] Installing RPM Fusion Free & Non-Free...</span></div>
+                        <div class="t-line"><span class="t-out">[INFO] Flathub metadata refreshed (system + user)</span></div>
+                        <div class="t-line"><span class="t-success">✅ ALL PACKAGES & FIXES APPLIED SUCCESSFULLY</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="stats-section">
+        <div class="stats-grid">
+            <div class="stat-card reveal"><div class="stat-num" data-c="7">0</div><div class="stat-label">Fedora Versions</div></div>
+            <div class="stat-card reveal"><div class="stat-num" data-c="10">0</div><div class="stat-label">Automated Steps</div></div>
+            <div class="stat-card reveal"><div class="stat-num" data-c="25">0+</div><div class="stat-label">Apps & Codecs</div></div>
+            <div class="stat-card reveal"><div class="stat-num" data-c="3">0.1</div><div class="stat-label">Script Version</div></div>
+        </div>
+    </section>
+
+    <section class="features-section" id="fixes">
+        <div class="section-header reveal">
+            <div class="section-label"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> What's New in v3.1</div>
+            <h2 class="section-title">Critical Fixes from Live Fedora 44 Testing</h2>
+            <p class="section-desc">v3.1 patches 11 major issues that break other setup scripts on modern Fedora releases.</p>
+        </div>
+        <div class="fixes-grid">
+            <div class="fix-card reveal"><div class="fix-icon">🔍</div><div class="fix-content"><h4>Cisco OpenH264 F44 Delay</h4><p>Installs `noopenh264` stub when Cisco repo hasn't published F44 `mozilla-openh264` yet.</p></div></div>
+            <div class="fix-card reveal"><div class="fix-icon">🔄</div><div class="fix-content"><h4>FFmpeg Conflict</h4><p>Uses `dnf swap --allowerasing` to safely replace `ffmpeg-free` with full RPM Fusion `ffmpeg`.</p></div></div>
+            <div class="fix-card reveal"><div class="fix-icon">📦</div><div class="fix-content"><h4>Flatpak Silent Failures</h4><p>Implements `--or-update`, system-to-user fallback, and pre-install `appstream` refresh.</p></div></div>
+            <div class="fix-card reveal"><div class="fix-icon">🔧</div><div class="fix-content"><h4>Snap PATH & Kernel</h4><p>Un-blacklists `squashfs`, creates `/snap` symlink, patches bash/zsh/fish/`/etc/environment`.</p></div></div>
+            <div class="fix-card reveal"><div class="fix-icon">🎬</div><div class="fix-content"><h4>Missing Multimedia Codecs</h4><p>Handles `lame`/`x264`/`x265` conflicts and missing `gstreamer` packages in F44.</p></div></div>
+            <div class="fix-card reveal"><div class="fix-icon">🖥️</div><div class="fix-content"><h4>GNOME Software Plugins</h4><p>Version-aware logic: skips `gnome-software-plugin-flatpak/snap` on F41+ where built-in.</p></div></div>
+        </div>
+    </section>
+
+    <section class="features-section" id="features">
+        <div class="section-header reveal">
+            <div class="section-label"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> 10-Step Automation</div>
+            <h2 class="section-title">What the Script Does</h2>
+            <p class="section-desc">From system update to final refresh, everything is handled automatically with robust error recovery.</p>
+        </div>
+        <div class="steps-grid">
+            <div class="step-card reveal"><div class="step-num">01</div><div class="step-icon blue"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></div><h3 class="step-title">System Update</h3><p class="step-desc">Refreshes package metadata and applies all pending system updates using `sudo dnf update -y`.</p></div>
+            <div class="step-card reveal"><div class="step-num">02</div><div class="step-icon purple"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><h3 class="step-title">RPM Fusion</h3><p class="step-desc">Installs Free & Non-Free repos. Handles `dnf group upgrade` vs `dnf5 groupupdate` automatically.</p></div>
+            <div class="step-card reveal"><div class="step-num">03</div><div class="step-icon cyan"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div><h3 class="step-title">Flathub & Flatpak</h3><p class="step-desc">Adds Flathub remote (system+user), syncs appstream metadata, installs `gnome-software` with version-aware plugin logic.</p></div>
+            <div class="step-card reveal"><div class="step-num">04</div><div class="step-icon green"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div><h3 class="step-title">Snap + Kernel Fixes</h3><p class="step-desc">Installs `snapd`, un-blacklists `squashfs`, loads kernel module, creates `/snap` symlink, patches all shell PATHs, and waits for `snapd` seeding.</p></div>
+            <div class="step-card reveal"><div class="step-num">05</div><div class="step-icon orange"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg></div><h3 class="step-title">OpenH264 Codec</h3><p class="step-desc">Enables Cisco repo, installs GStreamer plugin. Uses `noopenh264` stub on F44+ with clear fallback instructions.</p></div>
+            <div class="step-card reveal"><div class="step-num">06</div><div class="step-icon blue"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div><h3 class="step-title">Multimedia Codecs</h3><p class="step-desc">Swaps ffmpeg-free → full ffmpeg, installs GStreamer suite, `lame`, `x264`, `x265`, `libdvdcss` via tainted repo, and VLC via Flatpak.</p></div>
+            <div class="step-card reveal"><div class="step-num">07</div><div class="step-icon purple"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 1 0 0 20 10 10 0 1 0 0-20z"/></svg></div><h3 class="step-title">Google Chrome</h3><p class="step-desc">Adds official Google Chrome repository securely with GPG key verification and installs `google-chrome-stable`.</p></div>
+            <div class="step-card reveal"><div class="step-num">08</div><div class="step-icon cyan"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></div><h3 class="step-title">Visual Studio Code</h3><p class="step-desc">Imports Microsoft signing key, configures VS Code repo, and installs `code` with proper update channels.</p></div>
+            <div class="step-card reveal"><div class="step-num">09</div><div class="step-icon green"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></div><h3 class="step-title">Gaming & Media Apps</h3><p class="step-desc">Installs Heroic Games Launcher & Celluloid via Flatpak with `--or-update` and user fallback. Adds `dnf5-command(copr)` if needed.</p></div>
+            <div class="step-card reveal"><div class="step-num">10</div><div class="step-icon orange"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div><h3 class="step-title">Final System Refresh</h3><p class="step-desc">Runs final `dnf update` and `flatpak update` to ensure all newly added repos are fully synchronized. Reminds you to reboot.</p></div>
+        </div>
+    </section>
+
+    <section class="script-section" id="script">
+        <div class="script-container">
+            <div class="section-header reveal">
+                <div class="section-label"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg> The Script</div>
+                <h2 class="section-title">Thanks_God.sh v3.1</h2>
+                <p class="section-desc">Exact production-tested script. 200+ lines of robust configuration, error handling, and fallbacks.</p>
+            </div>
+            <div class="script-block reveal">
+                <div class="script-header">
+                    <span class="script-filename">Thanks_God.sh</span>
+                    <div class="script-actions">
+                        <button class="script-btn" id="copyScr" onclick="copyScr()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy</button>
+                        <a href="https://raw.githubusercontent.com/ShoumikBalaSomu/Enable-All-Packages-on-Fedora-38-44/main/Thanks_God.sh" target="_blank" class="script-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Raw</a>
+                    </div>
+                </div>
+                <div class="script-code" id="scrCode"></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="usage-section" id="usage">
+        <div class="section-header reveal">
+            <div class="section-label"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 16 16 12 8 12"/><line x1="12" y1="8" x2="12" y2="12"/></svg> Quick Start</div>
+            <h2 class="section-title">How to use</h2>
+            <p class="section-desc">⚠️ <strong>Run as a regular user, NOT root.</strong> The script will use `sudo` internally when needed.</p>
+        </div>
+        <div class="usage-steps">
+            <div class="use-card reveal">
+                <div class="use-num">1</div>
+                <div class="use-content"><h3>Open Terminal</h3><p>Launch your terminal on Fedora. Ensure you are logged in as a normal user with `sudo` privileges.</p></div>
+            </div>
+            <div class="use-card reveal">
+                <div class="use-num">2</div>
+                <div class="use-content">
+                    <h3>Paste & Run</h3>
+                    <p>Copy the one-liner below. It fetches the script securely via HTTPS and pipes it directly to bash.</p>
+                    <div class="use-cmd"><code>bash &lt;(curl -sL https://raw.githubusercontent.com/ShoumikBalaSomu/Enable-All-Packages-on-Fedora-38-44/main/Thanks_God.sh)</code><button class="copy-sm" onclick="copyToClip('bash <(curl -sL https://raw.githubusercontent.com/ShoumikBalaSomu/Enable-All-Packages-on-Fedora-38-44/main/Thanks_God.sh)', this)" aria-label="Copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button></div>
+                </div>
+            </div>
+            <div class="use-card reveal">
+                <div class="use-num">3</div>
+                <div class="use-content"><h3>Enter Password & Wait</h3><p>The script will prompt for your sudo password. It runs 10 automated steps (5-15 mins). Sit back and watch it work.</p></div>
+            </div>
+            <div class="use-card reveal">
+                <div class="use-num">4</div>
+                <div class="use-content">
+                    <h3>Reboot & Verify</h3>
+                    <p>Reboot to finalize kernel modules and snap changes. After reboot, test with:</p>
+                    <div class="use-cmd"><code>sudo reboot</code><button class="copy-sm" onclick="copyToClip('sudo reboot', this)" aria-label="Copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="apps-section" id="apps">
+        <div class="section-header reveal">
+            <div class="section-label"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg> Installed Software</div>
+            <h2 class="section-title">Apps & Codecs Ready</h2>
+            <p class="section-desc">Everything you need for development, multimedia, and daily use, configured out of the box.</p>
+        </div>
+        <div class="apps-grid">
+            <div class="app-card reveal"><div class="app-icon chrome">🌐</div><div class="app-info"><h4>Google Chrome</h4><span>Official RPM Repo</span></div></div>
+            <div class="app-card reveal"><div class="app-icon vscode">💻</div><div class="app-info"><h4>VS Code</h4><span>Microsoft RPM Repo</span></div></div>
+            <div class="app-card reveal"><div class="app-icon vlc">▶️</div><div class="app-info"><h4>VLC Player</h4><span>Flatpak (Flathub)</span></div></div>
+            <div class="app-card reveal"><div class="app-icon heroic">🎮</div><div class="app-info"><h4>Heroic Launcher</h4><span>Flatpak (Flathub)</span></div></div>
+            <div class="app-card reveal"><div class="app-icon cell">🎬</div><div class="app-info"><h4>Celluloid</h4><span>Flatpak (Flathub)</span></div></div>
+        </div>
+    </section>
+
+    <section class="compat-section" id="compatibility">
+        <div class="section-header reveal">
+            <div class="section-label"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg> Compatibility</div>
+            <h2 class="section-title">Supported Fedora Versions</h2>
+            <p class="section-desc">Tested and working on Fedora 38 through 44 — x86_64 & aarch64. bash, zsh, fish.</p>
+        </div>
+        <div class="compat-grid">
+            <div class="fedora-card reveal"><svg class="fedora-logo" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="22" fill="url(#fg)"/><path d="M24 8 L28 20 L40 20 L30 28 L34 40 L24 32 L14 40 L18 28 L8 20 L20 20Z" fill="white" opacity="0.9"/><defs><linearGradient id="fg" x1="0" y1="0" x2="48" y2="48"><stop stop-color="#3b82f6"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient></defs></svg><span class="fedora-ver">Fedora 38</span><span class="fedora-status"><span class="dot-green"></span>Supported</span></div>
+            <div class="fedora-card reveal"><svg class="fedora-logo" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="22" fill="url(#fg)"/><path d="M24 8 L28 20 L40 20 L30 28 L34 40 L24 32 L14 40 L18 28 L8 20 L20 20Z" fill="white" opacity="0.9"/></svg><span class="fedora-ver">Fedora 39</span><span class="fedora-status"><span class="dot-green"></span>Supported</span></div>
+            <div class="fedora-card reveal"><svg class="fedora-logo" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="22" fill="url(#fg)"/><path d="M24 8 L28 20 L40 20 L30 28 L34 40 L24 32 L14 40 L18 28 L8 20 L20 20Z" fill="white" opacity="0.9"/></svg><span class="fedora-ver">Fedora 40</span><span class="fedora-status"><span class="dot-green"></span>Supported</span></div>
+            <div class="fedora-card reveal"><svg class="fedora-logo" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="22" fill="url(#fg)"/><path d="M24 8 L28 20 L40 20 L30 28 L34 40 L24 32 L14 40 L18 28 L8 20 L20 20Z" fill="white" opacity="0.9"/></svg><span class="fedora-ver">Fedora 41</span><span class="fedora-status"><span class="dot-green"></span>Supported</span></div>
+            <div class="fedora-card reveal"><svg class="fedora-logo" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="22" fill="url(#fg)"/><path d="M24 8 L28 20 L40 20 L30 28 L34 40 L24 32 L14 40 L18 28 L8 20 L20 20Z" fill="white" opacity="0.9"/></svg><span class="fedora-ver">Fedora 42</span><span class="fedora-status"><span class="dot-green"></span>Supported</span></div>
+            <div class="fedora-card reveal"><svg class="fedora-logo" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="22" fill="url(#fg)"/><path d="M24 8 L28 20 L40 20 L30 28 L34 40 L24 32 L14 40 L18 28 L8 20 L20 20Z" fill="white" opacity="0.9"/></svg><span class="fedora-ver">Fedora 43</span><span class="fedora-status"><span class="dot-green"></span>Supported</span></div>
+            <div class="fedora-card reveal"><svg class="fedora-logo" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="22" fill="url(#fg)"/><path d="M24 8 L28 20 L40 20 L30 28 L34 40 L24 32 L14 40 L18 28 L8 20 L20 20Z" fill="white" opacity="0.9"/></svg><span class="fedora-ver">Fedora 44</span><span class="fedora-status"><span class="dot-green"></span>Fixed & Tested</span></div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-brand"><h3>Fedora Enable-All</h3><p>v3.1 — Fully tested on Fedora 38–44. Intelligent fallbacks for every edge case. Run as regular user, not root.</p></div>
+            <div class="foot-links"><h4>Resources</h4><a href="#fixes">Key Fixes</a><a href="#features">Features</a><a href="#script">Script</a><a href="#usage">Usage Guide</a></div>
+            <div class="foot-links"><h4>Links</h4><a href="https://github.com/ShoumikBalaSomu/Enable-All-Packages-on-Fedora-38-44" target="_blank">GitHub Repository</a><a href="https://github.com/ShoumikBalaSomu" target="_blank">Author Profile</a><a href="https://getfedora.org/" target="_blank">Fedora Project</a><a href="https://rpmfusion.org/" target="_blank">RPM Fusion</a></div>
+        </div>
+        <div class="foot-bottom">
+            <p>© 2026 Shoumik Bala Somu. Open source — use at your own risk.</p>
+            <div class="foot-social">
+                <a href="https://github.com/ShoumikBalaSomu" target="_blank" aria-label="GitHub"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg></a>
+                <a href="https://github.com/ShoumikBalaSomu/Enable-All-Packages-on-Fedora-38-44" target="_blank" aria-label="Repo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg></a>
+            </div>
+        </div>
+    </footer>
+
+    <div class="tooltip" id="tip">Copied!</div>
+
+    <script>
+        const cvs=document.getElementById('bgCanvas'),cx=cvs.getContext('2d');let pts=[],m={x:-999,y:-999};
+        function rC(){cvs.width=innerWidth;cvs.height=innerHeight}rC();addEventListener('resize',rC);
+        class Pt{constructor(){this.r()}r(){this.x=Math.random()*cvs.width;this.y=Math.random()*cvs.height;this.sz=Math.random()*1.2+0.4;this.vx=(Math.random()-0.5)*0.25;this.vy=(Math.random()-0.5)*0.25;this.o=Math.random()*0.4+0.1}u(){this.x+=this.vx;this.y+=this.vy;const dx=m.x-this.x,dy=m.y-this.y,d=Math.sqrt(dx*dx+dy*dy);if(d<180){this.x-=dx*0.008;this.y-=dy*0.008;this.o=Math.min(this.o+0.02,0.7)}if(this.x<0||this.x>cvs.width||this.y<0||this.y>cvs.height)this.r()}d(){cx.beginPath();cx.arc(this.x,this.y,this.sz,0,Math.PI*2);cx.fillStyle=`rgba(59,130,246,${this.o})`;cx.fill()}}
+        function iP(){const n=Math.min(Math.floor((cvs.width*cvs.height)/13000),140);pts=[];for(let i=0;i<n;i++)pts.push(new Pt)}iP();addEventListener('resize',iP);
+        function dL(){for(let i=0;i<pts.length;i++)for(let j=i+1;j<pts.length;j++){const dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y,d=Math.sqrt(dx*dx+dy*dy);if(d<130){cx.beginPath();cx.moveTo(pts[i].x,pts[i].y);cx.lineTo(pts[j].x,pts[j].y);cx.strokeStyle=`rgba(59,130,246,${0.05*(1-d/130)})`;cx.lineWidth=0.5;cx.stroke()}}}
+        (function a(){cx.clearRect(0,0,cvs.width,cvs.height);pts.forEach(p=>{p.u();p.d()});dL();requestAnimationFrame(a)})();
+        document.addEventListener('mousemove',e=>{m.x=e.clientX;m.y=e.clientY;const g=document.getElementById('cursorGlow');g.style.left=e.clientX+'px';g.style.top=e.clientY+'px'});
+        const nb=document.getElementById('navbar');addEventListener('scroll',()=>nb.classList.toggle('scrolled',scrollY>40));
+        function toggleMob(){document.getElementById('mobMenu').classList.toggle('active')}
+        const rv=document.querySelectorAll('.reveal'),rvO=new IntersectionObserver(e=>{e.forEach((x,i)=>{if(x.isIntersecting){setTimeout(()=>x.target.classList.add('visible'),i*60);rvO.unobserve(x.target)}})},{threshold:0.1,rootMargin:'0px 0px -40px 0px'});rv.forEach(x=>rvO.observe(x));
+        const cn=document.querySelectorAll('.stat-num'),cnO=new IntersectionObserver(e=>{e.forEach(x=>{if(x.isIntersecting){const t=parseInt(x.target.dataset.c),suf=x.target.textContent.replace(/[0-9]/g,'');let c=0,inc=t/50,timer=setInterval(()=>{c+=inc;if(c>=t){c=t;clearInterval(timer)}x.target.textContent=Math.floor(c)+(suf.includes('+')?'+':(suf.includes('.')?'.1':''))},30);cnO.unobserve(x.target)}})},{threshold:0.5});cn.forEach(x=>cnO.observe(x));
+
+        const scrContent=`#!/bin/bash
+# ===========================================================
+# Fedora Enable All Packages Script v3.1 — FEDORA 44 FIXED
+# Fixes ALL issues found on Fedora 44 live run:
+#   - mozilla-openh264 removed from Cisco repo (F44)
+#   - ffmpeg-free vs ffmpeg conflict → use dnf swap
+#   - libdvdcss requires rpmfusion-free-release-tainted
+#   - Heroic/Celluloid COPR 404 → replaced with Flatpak
+#   - VLC not in standard repos → flatpak fallback
+#   - lame / x264 / x265 conflict when already installed
+#   - gstreamer extras packages renamed/gone in F44
+#   - gnome-software-plugin-flatpak/snap removed in F41+
+#   - Flatpak installs failing silently → --or-update + retry
+#   - Flathub remote not ready before Flatpak installs
+# Run as regular user (NOT root). Requires internet.
+# Tested: Fedora 38–44 — bash/zsh/fish — x86_64/aarch64
+# ===========================================================
+
+set -euo pipefail
+
+RED='\\033[0;31m'
+GREEN='\\033[0;32m'
+YELLOW='\\033[1;33m'
+BLUE='\\033[0;34m'
+CYAN='\\033[0;36m'
+NC='\\033[0m'
+
+log()  { echo -e "\${GREEN}[INFO]\${NC}  $1"; }
+warn() { echo -e "\${YELLOW}[WARN]\${NC}  $1"; }
+err()  { echo -e "\${RED}[ERROR]\${NC} $1"; }
+sec()  { echo -e "\\n\${CYAN}========================================\${NC}"; echo -e "\${CYAN}  $1\${NC}"; echo -e "\${CYAN}========================================\${NC}\\n"; }
+
+# ── Safe install: warns instead of aborting on missing packages ──────────────
+safe_install() {
+  sudo dnf install -y --skip-unavailable "$@" || warn "Some packages unavailable, continuing..."
+}
+
+# ── Safe Flatpak install: tries system, falls back to user ───────────────────
+safe_flatpak_install() {
+  local app_id="$1"
+  local app_name="$2"
+  log "Installing \${app_name} via Flatpak..."
+  # Try system-wide first (--or-update handles already-installed)
+  if flatpak install -y --noninteractive --or-update flathub "\${app_id}" 2>/dev/null; then
+    log "\${app_name} installed/updated (system)."
+    return 0
+  fi
+  # Fallback: try user install
+  warn "System install failed — trying user install for \${app_name}..."
+  if flatpak install -y --noninteractive --or-update --user flathub "\${app_id}" 2>/dev/null; then
+    log "\${app_name} installed/updated (user)."
+    return 0
+  fi
+  warn "\${app_name} Flatpak install failed. Run manually: flatpak install flathub \${app_id}"
+  return 1
+}
+
+# ── Must NOT be root ─────────────────────────────────────────────────────────
+if [ "$(id -u)" -eq 0 ]; then
+  err "Do NOT run this script as root. Run as a normal user."
+  exit 1
+fi
+
+# ── Detect Fedora version ────────────────────────────────────────────────────
+FEDORA_VERSION=$(rpm -E %fedora)
+log "Detected: Fedora $FEDORA_VERSION"
+
+echo -e "\${BLUE}"
+echo " ███████╗███████╗██████╗  ██████╗ ██████╗  █████╗ "
+echo " ██╔════╝██╔════╝██╔══██╗██╔═══██╗██╔══██╗██╔══██╗"
+echo " █████╗  █████╗  ██║  ██║██║   ██║██████╔╝███████║"
+echo " ██╔══╝  ██╔══╝  ██║  ██║██║   ██║██╔══██╗██╔══██║"
+echo " ██║     ███████╗██████╔╝╚██████╔╝██║  ██║██║  ██║"
+echo " ╚═╝     ╚══════╝╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝"
+echo -e "\${NC}"
+echo "   Enable All Packages + All Fixes — v3.1 FEDORA 44"
+echo ""
+
+# ─────────────────────────────────────────
+sec "STEP 1 — System Update"
+# ─────────────────────────────────────────
+log "Updating system packages..."
+sudo dnf update -y
+log "System update complete."
+
+# ─────────────────────────────────────────
+sec "STEP 2 — RPM Fusion Free & Non-Free"
+# ─────────────────────────────────────────
+log "Installing RPM Fusion Free repository..."
+sudo dnf install -y \\
+  https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm
+
+log "Installing RPM Fusion Non-Free repository..."
+sudo dnf install -y \\
+  https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
+
+log "Updating core group metadata for GNOME Software..."
+if dnf5 --version &>/dev/null 2>&1; then
+  sudo dnf group upgrade -y core || warn "group upgrade core skipped (non-fatal)"
+else
+  sudo dnf groupupdate -y core || warn "groupupdate core skipped (non-fatal)"
+fi
+log "RPM Fusion enabled successfully."
+
+# ─────────────────────────────────────────
+sec "STEP 3 — Flathub (Flatpak)"
+# ─────────────────────────────────────────
+log "Installing Flatpak..."
+sudo dnf install -y flatpak
+
+log "Adding Flathub remote (system-wide)..."
+sudo flatpak remote-add --if-not-exists flathub \\
+  https://dl.flathub.org/repo/flathub.flatpakrepo
+
+log "Adding Flathub remote (user)..."
+flatpak remote-add --if-not-exists --user flathub \\
+  https://dl.flathub.org/repo/flathub.flatpakrepo
+
+# FIX: Ensure Flathub metadata is synced before any installs
+log "Refreshing Flathub metadata..."
+sudo flatpak update --appstream -y 2>/dev/null || true
+flatpak update --appstream --user -y 2>/dev/null || true
+
+log "Installing GNOME Software with Flatpak support..."
+if [ "$FEDORA_VERSION" -ge 41 ]; then
+  log "Fedora 41+ detected — Flatpak support built into gnome-software, no plugin needed."
+  safe_install gnome-software
+else
+  safe_install gnome-software gnome-software-plugin-flatpak
+fi
+log "Flathub enabled successfully."
+
+# ─────────────────────────────────────────
+sec "STEP 4 — Snap Installation & ALL Fixes"
+# ─────────────────────────────────────────
+
+## 4a. Install snapd and required packages
+log "Installing snapd, squashfs-tools, squashfuse, fuse..."
+safe_install snapd squashfs-tools squashfuse fuse fuse-libs kernel-modules
+
+## 4b. Install SELinux policy
+log "Installing snapd-selinux policy module..."
+safe_install snapd-selinux
+
+## 4c. Enable snapd socket and service
+log "Enabling snapd.socket and snapd.service..."
+sudo systemctl enable --now snapd.socket  || warn "snapd.socket enable failed (non-fatal)"
+sudo systemctl enable --now snapd.service || warn "snapd.service enable failed (non-fatal)"
+sudo systemctl start snapd.socket  || true
+sudo systemctl start snapd.service || true
+
+## 4d. Un-blacklist squashfs kernel module if needed
+log "Checking for squashfs blacklist in /etc/modprobe.d/..."
+BLACKLIST_FILES=$(grep -rl "squashfs" /etc/modprobe.d/ 2>/dev/null || true)
+if [ -n "$BLACKLIST_FILES" ]; then
+  warn "Found squashfs blacklist entries — commenting them out..."
+  for f in $BLACKLIST_FILES; do
+    sudo sed -i 's/^\\(.*squashfs.*\\)/#\\1/' "$f"
+    log "  Patched: $f"
+  done
+else
+  log "No squashfs blacklist found — OK."
+fi
+
+## 4e. Load squashfs kernel module
+log "Loading squashfs kernel module..."
+sudo modprobe squashfs || warn "modprobe squashfs failed — may need reboot."
+
+## 4f. Create /snap symlink for classic confinement
+if [ ! -e /snap ]; then
+  log "Creating /snap symlink for classic confinement..."
+  sudo ln -s /var/lib/snapd/snap /snap
+  log "/snap symlink created."
+else
+  log "/snap already exists — skipping symlink."
+fi
+
+## 4g. Fix PATH for bash
+SNAP_PATH_LINE='export PATH=$PATH:/var/lib/snapd/snap/bin'
+if ! grep -q 'snapd/snap/bin' ~/.bashrc 2>/dev/null; then
+  log "Adding snap/bin to ~/.bashrc..."
+  echo '' >> ~/.bashrc
+  echo '# Snap PATH fix (added by enable_all_packages.sh)' >> ~/.bashrc
+  echo "$SNAP_PATH_LINE" >> ~/.bashrc
+fi
+
+## 4h. Fix PATH for zsh
+if [ -f ~/.zshrc ]; then
+  if ! grep -q 'snapd/snap/bin' ~/.zshrc; then
+    log "Adding snap/bin to ~/.zshrc..."
+    echo '' >> ~/.zshrc
+    echo '# Snap PATH fix' >> ~/.zshrc
+    echo "$SNAP_PATH_LINE" >> ~/.zshrc
+  fi
+fi
+
+## 4i. Fix PATH for fish shell
+FISH_CONF_DIR="$HOME/.config/fish/conf.d"
+if command -v fish &>/dev/null; then
+  mkdir -p "$FISH_CONF_DIR"
+  FISH_SNAP_FILE="$FISH_CONF_DIR/snapd.fish"
+  if [ ! -f "$FISH_SNAP_FILE" ]; then
+    log "Adding snap/bin to fish shell config..."
+    echo '# Snap PATH fix' > "$FISH_SNAP_FILE"
+    echo 'fish_add_path /var/lib/snapd/snap/bin' >> "$FISH_SNAP_FILE"
+  fi
+fi
+
+## 4j. Fix PATH system-wide via /etc/environment
+log "Adding snap/bin to /etc/environment..."
+if ! sudo grep -q 'snapd/snap/bin' /etc/environment 2>/dev/null; then
+  if sudo grep -q '^PATH=' /etc/environment 2>/dev/null; then
+    sudo sed -i 's|^PATH="|PATH="/var/lib/snapd/snap/bin:|' /etc/environment
+  else
+    echo 'PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/var/lib/snapd/snap/bin"' | sudo tee -a /etc/environment
+  fi
+  log "/etc/environment updated."
+else
+  log "/etc/environment already contains snap path — skipping."
+fi
+
+## 4k. GNOME Software Snap plugin (version-aware)
+if [ "$FEDORA_VERSION" -ge 41 ]; then
+  log "Fedora 41+ — Snap support via gnome-software (no separate plugin needed)."
+else
+  log "Installing GNOME Software Snap plugin..."
+  safe_install gnome-software-plugin-snap
+fi
+
+## 4l. Wait for snapd to be seeded
+log "Waiting for snapd to finish seeding (this may take ~30s)..."
+SNAP_READY=false
+for i in $(seq 1 10); do
+  if snap wait system seed.loaded 2>/dev/null; then
+    SNAP_READY=true
+    log "snapd is ready."
+    break
+  fi
+  warn "snapd not ready yet... attempt $i/10 — waiting 5s"
+  sleep 5
+done
+if [ "$SNAP_READY" = false ]; then
+  warn "snapd may not be fully seeded. Run 'snap wait system seed.loaded' after reboot."
+fi
+
+log "All Snap fixes applied."
+
+# ─────────────────────────────────────────
+sec "STEP 5 — OpenH264 Codec (Cisco)"
+# ─────────────────────────────────────────
+log "Enabling OpenH264 repository..."
+if dnf5 --version &>/dev/null 2>&1; then
+  sudo dnf config-manager setopt fedora-cisco-openh264.enabled=1 2>/dev/null || \\
+    warn "Could not enable cisco openh264 repo via dnf5 (non-fatal)."
+else
+  sudo dnf config-manager --set-enabled fedora-cisco-openh264 2>/dev/null || \\
+  sudo dnf config-manager --enable fedora-cisco-openh264 2>/dev/null || \\
+    warn "Could not enable cisco openh264 repo — may already be enabled."
+fi
+
+log "Installing OpenH264 GStreamer plugin..."
+safe_install gstreamer1-plugin-openh264
+
+if [ "$FEDORA_VERSION" -ge 44 ]; then
+  log "Fedora 44+: mozilla-openh264 not yet in Cisco repo — installing noopenh264 stub..."
+  safe_install noopenh264
+  warn "mozilla-openh264 will be available once Cisco publishes F44 packages."
+  warn "Run 'sudo dnf install mozilla-openh264' after Cisco publishes."
+else
+  safe_install mozilla-openh264
+fi
+
+# ─────────────────────────────────────────
+sec "STEP 6 — Multimedia Codecs"
+# ─────────────────────────────────────────
+log "Installing multimedia codecs (GStreamer, FFmpeg, MP3, x264, x265)..."
+
+if dnf5 --version &>/dev/null 2>&1; then
+  log "DNF5 detected — installing @multimedia group..."
+  sudo dnf install -y @multimedia \\
+    --setopt=install_weak_deps=False \\
+    --exclude=PackageKit-gstreamer-plugin || \\
+    warn "@multimedia group install had issues (continuing with individual packages)"
+else
+  sudo dnf groupupdate -y multimedia \\
+    --setopt="install_weak_deps=False" \\
+    --exclude=PackageKit-gstreamer-plugin || \\
+    warn "groupupdate multimedia skipped (non-fatal)"
+fi
+
+log "Swapping ffmpeg-free → full ffmpeg from RPM Fusion..."
+if rpm -q ffmpeg-free &>/dev/null; then
+  sudo dnf swap -y ffmpeg-free ffmpeg --allowerasing && \\
+    log "ffmpeg swapped successfully." || \\
+    warn "ffmpeg swap failed — ffmpeg-free remains installed (non-fatal)."
+elif ! rpm -q ffmpeg &>/dev/null; then
+  safe_install ffmpeg ffmpeg-libs
+else
+  log "Full ffmpeg already installed — skipping swap."
+fi
+
+log "Installing individual codec packages..."
+safe_install \\
+  gstreamer1-plugins-base \\
+  gstreamer1-plugins-good \\
+  gstreamer1-plugins-bad-free \\
+  gstreamer1-plugins-ugly \\
+  gstreamer1-plugin-libav \\
+  gstreamer1-plugins-bad-freeworld \\
+  gstreamer1-plugins-ugly-free \\
+  lame lame-libs \\
+  x264-libs x265-libs \\
+  libavcodec-freeworld
+
+log "Enabling RPM Fusion Free Tainted repo for libdvdcss..."
+safe_install rpmfusion-free-release-tainted
+log "Installing libdvdcss..."
+safe_install libdvdcss
+
+# FIX v3.1: Use safe_flatpak_install with --or-update + user fallback
+safe_flatpak_install "org.videolan.VLC" "VLC"
+
+log "Multimedia codecs installed."
+
+# ─────────────────────────────────────────
+sec "STEP 7 — Google Chrome"
+# ─────────────────────────────────────────
+log "Adding Google Chrome repository..."
+sudo tee /etc/yum.repos.d/google-chrome.repo > /dev/null << 'REPO'
+[google-chrome]
+name=google-chrome
+baseurl=https://dl.google.com/linux/chrome/rpm/stable/x86_64
+enabled=1
+gpgcheck=1
+gpgkey=https://dl.google.com/linux/linux_signing_key.pub
+REPO
+
+log "Installing Google Chrome..."
+sudo dnf install -y google-chrome-stable
+log "Google Chrome installed."
+
+# ─────────────────────────────────────────
+sec "STEP 8 — Visual Studio Code"
+# ─────────────────────────────────────────
+log "Adding Microsoft VS Code repository..."
+sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc
+
+sudo tee /etc/yum.repos.d/vscode.repo > /dev/null << 'REPO'
+[code]
+name=Visual Studio Code
+baseurl=https://packages.microsoft.com/yumrepos/vscode
+enabled=1
+gpgcheck=1
+gpgkey=https://packages.microsoft.com/keys/microsoft.asc
+REPO
+
+sudo dnf check-update -y || true
+log "Installing VS Code..."
+sudo dnf install -y code
+log "VS Code installed."
+
+# ─────────────────────────────────────────
+sec "STEP 9 — Apps via Flatpak (Heroic & Celluloid)"
+# ─────────────────────────────────────────
+if dnf5 --version &>/dev/null 2>&1; then
+  log "Installing dnf5-command(copr) plugin for future use..."
+  safe_install 'dnf5-command(copr)'
+fi
+
+# FIX v3.1: Use safe_flatpak_install with --or-update + user fallback
+safe_flatpak_install "com.heroicgameslauncher.hgl" "Heroic Games Launcher"
+safe_flatpak_install "io.github.celluloid_player.Celluloid" "Celluloid"
+
+log "Flatpak app installations complete."
+
+# ─────────────────────────────────────────
+sec "STEP 10 — Final System Refresh"
+# ─────────────────────────────────────────
+log "Running final dnf update to pull in any new package metadata..."
+sudo dnf update -y
+
+log "Refreshing Flatpak remotes..."
+flatpak update -y --noninteractive || true
+
+# ─────────────────────────────────────────
+sec "ALL DONE!"
+# ─────────────────────────────────────────
+echo ""
+echo -e "\${GREEN}╔══════════════════════════════════════════════╗\${NC}"
+echo -e "\${GREEN}║   ALL PACKAGES & FIXES APPLIED SUCCESSFULLY  ║\${NC}"
+echo -e "\${GREEN}╚══════════════════════════════════════════════╝\${NC}"
+echo ""
+echo -e " \${CYAN}What was done:\${NC}"
+echo "  ✅ RPM Fusion Free & Non-Free enabled"
+echo "  ✅ Flathub remote added + metadata refreshed (system + user)"
+echo "  ✅ gnome-software Flatpak/Snap support (version-aware)"
+echo "  ✅ Snap installed & enabled"
+echo "  ✅ /snap symlink created (classic confinement)"
+echo "  ✅ squashfs module un-blacklisted & loaded"
+echo "  ✅ snapd.socket & snapd.service enabled"
+echo "  ✅ snapd-selinux policy installed"
+echo "  ✅ snap/bin added to PATH (.bashrc/.zshrc/fish//etc/environment)"
+echo "  ✅ snapd seeding waited for"
+echo "  ✅ OpenH264 GStreamer codec installed"
+echo "  ✅ mozilla-openh264: noopenh264 stub (F44 Cisco delay workaround)"
+echo "  ✅ ffmpeg-free swapped for full ffmpeg (RPM Fusion)"
+echo "  ✅ rpmfusion-free-release-tainted + libdvdcss installed"
+echo "  ✅ GStreamer, libavcodec-freeworld, lame, x264, x265 installed"
+echo "  ✅ VLC installed via Flatpak (--or-update + user fallback)"
+echo "  ✅ Google Chrome installed"
+echo "  ✅ VS Code installed"
+echo "  ✅ Heroic Games Launcher via Flatpak (--or-update + user fallback)"
+echo "  ✅ Celluloid via Flatpak (--or-update + user fallback)"
+echo ""
+echo -e " \${YELLOW}⚠️  IMPORTANT: Reboot now to finalize all changes!\${NC}"
+echo ""
+echo -e "   \${BLUE}sudo reboot\${NC}"
+echo ""
+echo -e " After reboot, verify snap: \${CYAN}snap install hello-world && hello-world\${NC}"
+echo "";`;
+
+        function esc(t){const d=document.createElement('div');d.textContent=t;return d.innerHTML}
+        function hl(code){
+            const lines=code.split('\\n');let h='';
+            lines.forEach((ln,i)=>{
+                let o=esc(ln);
+                if(ln.trim().startsWith('#')){o=`<span class="c-comment">${o}</span>`}
+                else{
+                    o=o.replace(/\\b(if|then|else|fi|for|do|done|while|local|return|true|false|in|set|source)\\b/g,'<span class="c-key">$1</span>')
+                    .replace(/(".*?"|'.*?')/g,'<span class="c-str">$1</span>')
+                    .replace(/(\\$[A-Za-z_][A-Za-z0-9_]*|\\$\\([^)]+\\)|\\$\\{[^}]+\\})/g,'<span class="c-var">$1</span>')
+                    .replace(/(-[a-zA-Z-]+)/g,'<span class="c-flag">$1</span>')
+                    .replace(/\\b(sudo|dnf|dnf5|flatpak|snap|rpm|tee|sed|grep|modprobe|systemctl|curl|bash|command|mkdir|chmod|seq|sleep|id|cat|echo|log|warn|err|sec|safe_install|safe_flatpak_install|id|uname|reboot)\\b/g,'<span class="c-func">$1</span>');
+                }
+                h+=`<div class="code-line"><span class="line-num">${i+1}</span><span class="code-content">${o}</span></div>`;
+            });return h;
+        }
+        document.getElementById('scrCode').innerHTML=hl(scrContent);
+
+        function copyToTxt(txt,tip){navigator.clipboard.writeText(txt).then(()=>{const t=document.getElementById('tip');t.textContent='Copied!';t.style.left=tip.getBoundingClientRect().left+'px';t.style.top=(tip.getBoundingClientRect().top-30)+'px';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1400)})}
+        function copyMain(){const b=document.getElementById('copyMain');copyToTxt('bash <(curl -sL https://raw.githubusercontent.com/ShoumikBalaSomu/Enable-All-Packages-on-Fedora-38-44/main/Thanks_God.sh)',b);b.classList.add('copied');b.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><polyline points="20 6 9 17 4 12"/></svg> Copied!`;setTimeout(()=>{b.classList.remove('copied');b.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy Command`},2000)}
+        function copyScr(){const b=document.getElementById('copyScr');navigator.clipboard.writeText(scrContent).then(()=>{b.classList.add('copied');b.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Copied!`;setTimeout(()=>{b.classList.remove('copied');b.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy`},2000)})}
+        function copyToClip(t,b){copyToTxt(t,b)}
+
+        document.querySelectorAll('a[href^="#"]').forEach(a=>{a.addEventListener('click',function(e){e.preventDefault();const t=document.querySelector(this.getAttribute('href'));if(t)t.scrollIntoView({behavior:'smooth',block:'start'})})});
+    </script>
+</body>
+</html>
+
+
